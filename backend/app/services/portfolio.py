@@ -87,7 +87,16 @@ def get_portfolio_analytics(db: Session, portfolio_id: int) -> dict | None:
         )
 
     net_pnl = realized_pnl + unrealized_pnl - total_fees
-    return_pct = (net_pnl / 100000.0 * 100.0) if portfolio.equity else 0.0
+    baseline_equity = 100000.0
+    first_snapshot = db.scalar(
+        select(PortfolioSnapshot)
+        .where(PortfolioSnapshot.portfolio_id == portfolio_id)
+        .order_by(PortfolioSnapshot.captured_at.asc(), PortfolioSnapshot.id.asc())
+        .limit(1)
+    )
+    if first_snapshot and first_snapshot.equity:
+        baseline_equity = first_snapshot.equity
+    return_pct = (net_pnl / baseline_equity * 100.0) if baseline_equity else 0.0
 
     return {
         "portfolio_id": portfolio.id,
@@ -162,7 +171,10 @@ def record_portfolio_snapshot(
     )
 
     daily_return = ((equity / previous.equity) - 1.0) if previous and previous.equity else 0.0
-    cumulative_return = ((equity / 100000.0) - 1.0) if equity else 0.0
+    baseline_equity = 100000.0
+    if previous and previous.cumulative_return != 0.0:
+        baseline_equity = previous.equity / (1.0 + previous.cumulative_return)
+    cumulative_return = ((equity / baseline_equity) - 1.0) if baseline_equity else 0.0
     prior_peak = max(
         [s.equity for s in get_performance_snapshots(db, portfolio_id, limit=10000)]
         + [100000.0]
@@ -171,7 +183,7 @@ def record_portfolio_snapshot(
 
     snapshot = PortfolioSnapshot(
         portfolio_id=portfolio_id,
-        captured_at=captured_at,
+        captured_at=captured_at or datetime.utcnow(),
         cash_balance=portfolio.cash_balance,
         market_value=market_value,
         equity=equity,
