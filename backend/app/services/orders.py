@@ -2,7 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.order import Order, OrderStatus
-from app.models.user import User
+from app.models.trade import Trade
 
 
 def get_order(db: Session, order_id: int) -> Order | None:
@@ -26,6 +26,16 @@ def list_orders(
             .order_by(Order.created_at.desc(), Order.id.desc())
             .limit(limit)
             .offset(offset)
+        )
+    )
+
+
+def get_order_trades(db: Session, order_id: int) -> list[Trade]:
+    return list(
+        db.scalars(
+            select(Trade)
+            .where(Trade.order_id == order_id)
+            .order_by(Trade.executed_at.asc(), Trade.id.asc())
         )
     )
 
