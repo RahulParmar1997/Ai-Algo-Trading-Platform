@@ -22,9 +22,10 @@ class MarketQuote:
     ask: float
     last: float
 
-    @property
-    def market_price(self) -> float:
-        return self.ask if self.ask > 0 else self.last
+    def price_for(self, side: OrderSide) -> float:
+        if side == OrderSide.BUY:
+            return self.ask if self.ask > 0 else self.last
+        return self.bid if self.bid > 0 else self.last
 
 
 def _get_or_create_position(db: Session, portfolio_id: int, symbol: str) -> Position:
@@ -136,7 +137,7 @@ class PaperBroker:
             raise ExecutionRejected(f"Order cannot be executed from status={order.status.value}.")
 
         portfolio = order.portfolio
-        fill_price = quote.market_price
+        fill_price = quote.price_for(order.side)
         notional = order.quantity * fill_price
         fees = notional * fee_rate
 
