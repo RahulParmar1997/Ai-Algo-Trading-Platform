@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./trading.db"
     api_prefix: str = "/api"
     cors_origins: str = "*"
+    secret_key: str = "CHANGE-ME-IN-PRODUCTION"
 
     model_config = SettingsConfigDict(
         env_file=".env",
