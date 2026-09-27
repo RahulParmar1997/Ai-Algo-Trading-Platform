@@ -67,7 +67,7 @@ POST /api/trading/orders/detail/{order_id}/cancel
 POST /api/trading/orders/detail/{order_id}/paper-execute
 ```
 
-Paper execution accepts a quote in the request and uses the ask as the buy market price and the ask/last fallback exposed by the paper quote model for market execution. Live broker integration will use broker-native quotes and adapters instead.
+For paper market orders, buy fills use the supplied ask and sell fills use the supplied bid; last is a fallback when the corresponding side is unavailable. Live broker integration will use broker-native quotes and adapters instead.
 
 Set `SECRET_KEY` in `.env` before any non-development deployment.
 
