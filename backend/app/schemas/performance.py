@@ -17,6 +17,9 @@ class PortfolioAnalyticsResponse(BaseModel):
     equity: float
     buying_power: float
     market_value: float
+    gross_exposure: float
+    net_exposure: float
+    gross_exposure_pct: float
     realized_pnl: float
     unrealized_pnl: float
     total_fees: float
