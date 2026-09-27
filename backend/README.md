@@ -4,8 +4,6 @@ FastAPI backend foundation for the AI Algo Trading Platform.
 
 ## Architecture
 
-The backend is organized around stable domain interfaces:
-
 - API: HTTP/WebSocket endpoints
 - Services: application/domain operations
 - Engine: event-driven trading components
@@ -13,7 +11,7 @@ The backend is organized around stable domain interfaces:
 - Models: persistence
 - Schemas: API contracts
 
-The product roadmap is preserved as:
+Roadmap:
 
 1. Portfolio
 2. Trading
@@ -30,20 +28,51 @@ cd backend
 python -m venv .venv
 # Windows PowerShell:
 .\.venv\Scripts\Activate.ps1
-pip install -e .
+pip install -e ".[dev]"
 uvicorn app.main:app --reload
 ```
 
-Health endpoint:
+Health:
 
 ```
 GET /health
 ```
 
-Portfolio endpoints are intentionally small in this foundation and will expand as the portfolio domain is completed.
+Auth:
+
+```
+POST /auth/register
+POST /auth/login
+GET  /auth/me
+```
+
+Portfolio:
+
+```
+GET /api/portfolios/{portfolio_id}
+GET /api/portfolios/{portfolio_id}/value
+GET /api/portfolios/{portfolio_id}/positions
+GET /api/portfolios/{portfolio_id}/analytics
+GET /api/portfolios/{portfolio_id}/transactions
+GET /api/portfolios/{portfolio_id}/performance
+```
+
+Trading:
+
+```
+POST /api/trading/orders/{portfolio_id}
+GET  /api/trading/orders/{portfolio_id}
+GET  /api/trading/orders/detail/{order_id}
+POST /api/trading/orders/detail/{order_id}/cancel
+POST /api/trading/orders/detail/{order_id}/paper-execute
+```
+
+Paper execution accepts a quote in the request and uses the ask as the buy market price and the ask/last fallback exposed by the paper quote model for market execution. Live broker integration will use broker-native quotes and adapters instead.
+
+Set `SECRET_KEY` in `.env` before any non-development deployment.
 
 ## Design rule
 
 Strategy code must never call a broker directly. The intended live path is:
 
-market data -> features/signals -> decision -> risk -> order plan -> broker adapter
+market data -> features/signals -> decision -> risk -> order plan -> broker adapter -> broker
