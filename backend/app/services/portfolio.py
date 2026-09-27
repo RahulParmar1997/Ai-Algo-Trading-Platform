@@ -9,6 +9,7 @@ from app.models.position import Position
 from app.models.transaction import Transaction
 from app.models.user import User
 
+
 def get_user_portfolio(db: Session, user: User) -> Portfolio | None:
     return db.scalar(
         select(Portfolio)
@@ -67,12 +68,14 @@ def get_portfolio_analytics(db: Session, portfolio_id: int) -> dict | None:
 
     allocation = []
     market_value = 0.0
+    gross_exposure = 0.0
     unrealized_pnl = 0.0
 
     for position in portfolio.positions:
         position_value = position.quantity * position.current_price
         position_pnl = (position.current_price - position.average_price) * position.quantity
         market_value += position_value
+        gross_exposure += abs(position_value)
         unrealized_pnl += position_pnl
         allocation.append(
             {
@@ -86,7 +89,9 @@ def get_portfolio_analytics(db: Session, portfolio_id: int) -> dict | None:
             }
         )
 
+    net_exposure = market_value
     net_pnl = realized_pnl + unrealized_pnl - total_fees
+
     baseline_equity = 100000.0
     first_snapshot = db.scalar(
         select(PortfolioSnapshot)
@@ -96,6 +101,7 @@ def get_portfolio_analytics(db: Session, portfolio_id: int) -> dict | None:
     )
     if first_snapshot and first_snapshot.equity:
         baseline_equity = first_snapshot.equity
+
     return_pct = (net_pnl / baseline_equity * 100.0) if baseline_equity else 0.0
 
     return {
@@ -104,12 +110,19 @@ def get_portfolio_analytics(db: Session, portfolio_id: int) -> dict | None:
         "equity": portfolio.equity,
         "buying_power": portfolio.buying_power,
         "market_value": market_value,
+        "gross_exposure": gross_exposure,
+        "net_exposure": net_exposure,
+        "gross_exposure_pct": (
+            gross_exposure / portfolio.equity * 100.0 if portfolio.equity else 0.0
+        ),
         "realized_pnl": realized_pnl,
         "unrealized_pnl": unrealized_pnl,
         "total_fees": total_fees,
         "net_pnl": net_pnl,
         "return_pct": return_pct,
-        "invested_pct": (market_value / portfolio.equity * 100.0) if portfolio.equity else 0.0,
+        "invested_pct": (
+            gross_exposure / portfolio.equity * 100.0 if portfolio.equity else 0.0
+        ),
         "allocation": allocation,
     }
 
@@ -152,7 +165,7 @@ def record_portfolio_snapshot(
     db: Session,
     portfolio_id: int,
     *,
-    captured_at=None,
+    captured_at: datetime | None = None,
 ) -> PortfolioSnapshot | None:
     portfolio = get_portfolio(db, portfolio_id)
     if portfolio is None:
@@ -171,14 +184,15 @@ def record_portfolio_snapshot(
     )
 
     daily_return = ((equity / previous.equity) - 1.0) if previous and previous.equity else 0.0
+
     baseline_equity = 100000.0
     if previous and previous.cumulative_return != 0.0:
         baseline_equity = previous.equity / (1.0 + previous.cumulative_return)
+
     cumulative_return = ((equity / baseline_equity) - 1.0) if baseline_equity else 0.0
-    prior_peak = max(
-        [s.equity for s in get_performance_snapshots(db, portfolio_id, limit=10000)]
-        + [100000.0]
-    )
+
+    prior_snapshots = get_performance_snapshots(db, portfolio_id, limit=10000)
+    prior_peak = max([s.equity for s in prior_snapshots] + [baseline_equity])
     drawdown = ((equity / prior_peak) - 1.0) if prior_peak else 0.0
 
     snapshot = PortfolioSnapshot(
