@@ -1,4 +1,5 @@
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserResponse
+from app.schemas.order import OrderCreate, OrderResponse
 from app.schemas.performance import (
     AllocationItem,
     PortfolioAnalyticsResponse,
@@ -6,6 +7,7 @@ from app.schemas.performance import (
 )
 from app.schemas.portfolio import PortfolioResponse, PortfolioValueResponse
 from app.schemas.position import PositionResponse
+from app.schemas.trade import TradeResponse
 from app.schemas.transaction import TransactionResponse
 
 __all__ = [
@@ -13,6 +15,9 @@ __all__ = [
     "RegisterRequest",
     "TokenResponse",
     "UserResponse",
+    "OrderCreate",
+    "OrderResponse",
+    "TradeResponse",
     "PortfolioResponse",
     "PortfolioValueResponse",
     "PositionResponse",
