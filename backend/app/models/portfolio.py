@@ -30,3 +30,9 @@ class Portfolio(Base):
     snapshots: Mapped[list["PortfolioSnapshot"]] = relationship(
         back_populates="portfolio", cascade="all, delete-orphan"
     )
+    orders: Mapped[list["Order"]] = relationship(
+        back_populates="portfolio", cascade="all, delete-orphan"
+    )
+    trades: Mapped[list["Trade"]] = relationship(
+        back_populates="portfolio", cascade="all, delete-orphan"
+    )
