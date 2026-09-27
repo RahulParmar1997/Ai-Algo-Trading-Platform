@@ -1,26 +1,64 @@
 # Portfolio milestone
 
-Implemented in the backend foundation:
+## Phase 1 — foundation
 
 - SQLAlchemy User, Portfolio and Position models
 - Portfolio service with eager-loaded positions
+- Portfolio value and positions APIs
+- Authenticated portfolio ownership enforcement
+- JWT authentication and automatic Main Portfolio provisioning
+
+## Phase 2 — analytics
+
+- Immutable-style transaction ledger model
+- Portfolio performance snapshot model
+- Portfolio analytics service
+- Realized P&L aggregation from ledger
+- Unrealized P&L from current positions
+- Fee aggregation
+- Gross exposure and net exposure
+- Allocation by symbol
+- Return percentage
+- Transaction history API with pagination
+- Performance snapshot history API with pagination
+- Internal snapshot recorder for future scheduled/event-driven use
+
+## APIs
+
+Authentication:
+
+- `POST /auth/register`
+- `POST /auth/login`
+- `GET /auth/me`
+
+Portfolio:
+
 - `GET /api/portfolios/{portfolio_id}`
 - `GET /api/portfolios/{portfolio_id}/value`
 - `GET /api/portfolios/{portfolio_id}/positions`
-- FastAPI lifespan-based database initialization
-- Basic API smoke test
+- `GET /api/portfolios/{portfolio_id}/analytics`
+- `GET /api/portfolios/{portfolio_id}/transactions?limit=100&offset=0`
+- `GET /api/portfolios/{portfolio_id}/performance?limit=365&offset=0`
 
-## Authentication boundary
+## Data semantics
 
-These development routes currently address portfolios by ID. Before exposing them to end users, wrap them with the project's JWT/current-user dependency and enforce portfolio ownership at the query level.
+Transaction `realized_pnl` is treated as the gross realized P&L recorded by the execution/trading layer. Portfolio analytics subtracts ledger fees separately.
+
+For long/short portfolios:
+
+- net exposure = signed market value
+- gross exposure = sum of absolute position market values
+- allocation remains signed by market value
+- gross exposure percentage is gross exposure divided by equity
 
 ## Next portfolio work
 
-- portfolio creation
-- default portfolio provisioning after registration
-- transaction ledger
-- realized/unrealized P&L
-- allocation/exposure calculations
-- portfolio performance time series
-- broker-synced positions
-- pagination and filtering
+Before entering the full Trading Engine, add:
+
+- transaction write service used by paper/live execution
+- deterministic cost basis handling
+- cash/equity reconciliation
+- daily/accounting close
+- portfolio performance jobs
+- broker position reconciliation
+- Alembic migrations for production schema management
