@@ -1,1 +1,4 @@
-"""HTTP API routers."""
+from app.api.health import router as health_router
+from app.api.portfolio import router as portfolio_router
+
+__all__ = ["health_router", "portfolio_router"]
