@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -11,7 +11,7 @@ from app.models.user import User
 from app.schemas.order import OrderCreate, OrderResponse
 from app.schemas.trade import TradeResponse
 from app.services.execution import ExecutionRejected, MarketQuote, PaperBroker
-from app.services.orders import cancel_order, create_order, get_order, list_orders
+from app.services.orders import cancel_order, create_order, get_order, get_order_trades, list_orders
 
 router = APIRouter(prefix="/api/trading", tags=["trading"])
 
@@ -87,8 +87,17 @@ def read_order(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> OrderResponse:
-    order = get_order(db, order_id)
-    return owned_order_or_404(order, current_user)
+    return owned_order_or_404(get_order(db, order_id), current_user)
+
+
+@router.get("/orders/detail/{order_id}/trades", response_model=list[TradeResponse])
+def read_order_trades(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[TradeResponse]:
+    owned_order_or_404(get_order(db, order_id), current_user)
+    return get_order_trades(db, order_id)
 
 
 @router.post("/orders/detail/{order_id}/cancel", response_model=OrderResponse)
@@ -111,8 +120,7 @@ def paper_execute(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> TradeResponse:
-    order = get_order(db, order_id)
-    order = owned_order_or_404(order, current_user)
+    order = owned_order_or_404(get_order(db, order_id), current_user)
 
     if order.status in {OrderStatus.FILLED, OrderStatus.CANCELED, OrderStatus.REJECTED}:
         raise HTTPException(status_code=409, detail="Order is not executable")
@@ -121,7 +129,7 @@ def paper_execute(
         trade = PaperBroker().submit_market_order(
             db,
             order,
-            quote=MarketQuote(
+            quote=__import__("app.services.execution", fromlist=["MarketQuote"]).MarketQuote(
                 symbol=order.symbol,
                 bid=request.bid,
                 ask=request.ask,
