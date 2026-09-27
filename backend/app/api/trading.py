@@ -129,7 +129,7 @@ def paper_execute(
         trade = PaperBroker().submit_market_order(
             db,
             order,
-            quote=__import__("app.services.execution", fromlist=["MarketQuote"]).MarketQuote(
+            quote=MarketQuote(
                 symbol=order.symbol,
                 bid=request.bid,
                 ask=request.ask,
